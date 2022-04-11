@@ -1,0 +1,48 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_call:
+
+jobs:
+  test:
+    name: Test
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 10
+
+    env:
+      REF: ${{ github.ref_name }}
+      NODE_VERSION: 16.14.2
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Cache
+        uses: actions/cache@v3
+        with:
+          path: '**/node_modules'
+          key: node-modules-${{ runner.os }}-${{ github.ref_name }}-${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            node-modules-${{ runner.os }}-${{ github.ref_name }}-${{ env.NODE_VERSION }}
+            node-modules-${{ runner.os }}-main-${{ env.NODE_VERSION }}
+            node-modules-${{ runner.os }}-${{ github.ref_name }}-
+            node-modules-${{ runner.os }}-main-
+
+      - name: Use Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm i --no-fund
+
+      - name: Check code styles
+        run: npm run lint
+
+      - name: Test the project
+        run: npm run test:ci
